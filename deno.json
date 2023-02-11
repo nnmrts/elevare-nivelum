@@ -1,0 +1,13 @@
+{
+	"fmt": {
+		"options": {
+			"useTabs": true,
+			"indentWidth": 4,
+			"singleQuote": false
+		}
+	},
+	"tasks": {
+		"start": "deno run -A ./main.js"
+	},
+	"importMap": "./modules.json"
+}

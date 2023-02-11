@@ -1,0 +1,6 @@
+{
+    "deno.enable": true,
+    "deno.unstable": true,
+    "editor.useTabStops": true,
+    "editor.detectIndentation": false
+}
