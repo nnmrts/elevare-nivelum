@@ -7,7 +7,7 @@
 		}
 	},
 	"tasks": {
-		"start": "deno run -A ./main.js"
+		"start": "deno run -A --unstable ./main.js"
 	},
 	"importMap": "./modules.json"
 }

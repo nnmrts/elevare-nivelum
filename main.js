@@ -1,3 +1,4 @@
+import { Database } from "sqlite3";
 import { join, resolve } from "std/path";
 
 import { Temporal, toTemporalInstant } from "npm:@js-temporal/polyfill";
@@ -49,9 +50,11 @@ const {
     path: latestSaveFilePath,
 } = latestSaveFileEntry;
 
+console.log(`changing ${latestSaveFilePath}`);
+
 const saveData = await readFile(latestSaveFilePath);
 
-const dbStartSequence = "RawDatabaseImage"
+const databaseStartSequence = "RawDatabaseImage"
     .split("")
     .map((character) =>
         Number.parseInt(
@@ -60,18 +63,42 @@ const dbStartSequence = "RawDatabaseImage"
         )
     );
 
-const dbStartSequenceIndex = findIndexOfSequence(saveData, dbStartSequence);
+const databaseStartSequenceIndex = findIndexOfSequence(saveData, databaseStartSequence);
 
-const dbSizeOffsetIndex = dbStartSequenceIndex + 61;
-const dbStartOffsetIndex = dbSizeOffsetIndex + 4;
-const dbSizeBytes = saveData.slice(dbSizeOffsetIndex, dbStartOffsetIndex);
-const dataView = new DataView(dbSizeBytes.buffer);
-const dbSize = dataView.getInt32(0, true);
-const dbEndOffsetIndex = dbStartOffsetIndex + dbSize;
-const dbData = saveData.slice(dbStartOffsetIndex, dbEndOffsetIndex);
+const databaseSizeOffsetIndex = databaseStartSequenceIndex + 61;
+const databaseStartOffsetIndex = databaseSizeOffsetIndex + 4;
+const databaseSizeBytes = saveData.slice(databaseSizeOffsetIndex, databaseStartOffsetIndex);
+const dataView = new DataView(databaseSizeBytes.buffer);
+const databaseSize = dataView.getInt32(0, true);
+const databaseEndOffsetIndex = databaseStartOffsetIndex + databaseSize;
+const databaseData = saveData.slice(databaseStartOffsetIndex, databaseEndOffsetIndex);
 
-console.log(dbData);
+const databasePath = resolve("./db.sqlite");
 
-const dbPath = resolve("./db.sqlite");
+await writeFile(databasePath, databaseData);
 
-await writeFile(dbPath, dbData);
+const database = new Database(databasePath);
+
+const query = `
+    UPDATE MiscDataDynamic
+        SET DataValue = 80000
+        WHERE DataOwner = 'ExperienceManager'
+        AND DataName = 'ExperiencePoints';
+`;
+
+database.exec(query);
+
+database.close();
+
+const newDatabaseData = await readFile(databasePath);
+
+dataView.setUint32(0, newDatabaseData.length, true);
+
+const newSaveData = Uint8Array.from([
+    ...saveData.slice(0, databaseSizeOffsetIndex),
+    ...new Uint8Array(dataView.buffer),
+    ...newDatabaseData,
+    ...saveData.slice(databaseEndOffsetIndex),
+]);
+
+await writeFile(latestSaveFilePath, newSaveData);
